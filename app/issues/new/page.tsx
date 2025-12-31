@@ -1,7 +1,7 @@
 /* eslint-disable react/jsx-no-undef */
 'use client';
 
-import { Button, Callout, Text, TextField } from '@radix-ui/themes';
+import { Button, Callout, Spinner, TextField } from '@radix-ui/themes';
 import SimpleMDE from 'react-simplemde-editor';
 import 'easymde/dist/easymde.min.css';
 import { Controller, useForm } from 'react-hook-form';
@@ -11,12 +11,14 @@ import { useState } from 'react';
 import { zodResolver } from '@hookform/resolvers/zod';
 import z from 'zod';
 import { createIssueSchema } from '@/app/validationSchemas';
+import ErrorMessage from '@/app/components/ErrorMessage';
 
 type IssueForm = z.infer<typeof createIssueSchema>;
 
 const NewIssuePage = () => {
 	const router = useRouter();
 	const [error, setError] = useState('');
+	const [isSubmitting, setIsSubmitting] = useState(false);
 	const {
 		register,
 		handleSubmit,
@@ -27,6 +29,7 @@ const NewIssuePage = () => {
 	});
 	const onSubmit = async (data: IssueForm) => {
 		setError('');
+		setIsSubmitting(true);
 		try {
 			console.log(data);
 			await axios.post('/api/issues', data);
@@ -34,6 +37,8 @@ const NewIssuePage = () => {
 		} catch (error) {
 			setError('Failed to create issue');
 			console.error('Failed to create issue:', error);
+		} finally {
+			setIsSubmitting(false);
 		}
 	};
 
@@ -50,11 +55,7 @@ const NewIssuePage = () => {
 				onSubmit={handleSubmit(onSubmit)}
 			>
 				<TextField.Root placeholder='Title' {...register('title')} />
-				{errors.title && (
-					<Text color='red' as='p' className='pb-3'>
-						{errors.title.message}
-					</Text>
-				)}
+				<ErrorMessage>{errors.title?.message}</ErrorMessage>
 				<Controller
 					name='description'
 					control={control}
@@ -62,12 +63,10 @@ const NewIssuePage = () => {
 						<SimpleMDE placeholder='Description' {...field} />
 					)}
 				></Controller>
-				{errors.description && (
-					<Text color='red' as='p' className='pb-3'>
-						{errors.description.message}
-					</Text>
-				)}
-				<Button>Submit New Issue</Button>
+				<ErrorMessage>{errors.description?.message}</ErrorMessage>
+				<Button disabled={isSubmitting}>
+					Submit New Issue {isSubmitting && <Spinner />}
+				</Button>
 			</form>
 		</>
 	);
